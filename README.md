@@ -5,7 +5,7 @@ A CLI that turns AI prompting from guesswork into engineering. Define what you w
 ## Install
 
 ```bash
-git clone https://github.com/yourusername/mm-cli.git
+git clone https://github.com/hududed/mm-cli.git
 cd mm-cli
 npm install
 npm run build
