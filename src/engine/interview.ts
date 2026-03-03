@@ -288,7 +288,8 @@ A specification that doesn't reference real files from the codebase is a bad spe
  * or explicit completion signals.
  */
 function isLikelyComplete(response: string, config: InterviewConfig): boolean {
-  const completionMarkers = [
+  // Global markers that signal completion across any template
+  const globalMarkers = [
     '===',
     'HOW TO USE',
     'HOW TO DEPLOY',
@@ -303,7 +304,22 @@ function isLikelyComplete(response: string, config: InterviewConfig): boolean {
     'highest-leverage thing you can do this week',
   ];
 
-  return completionMarkers.some(marker => response.includes(marker));
+  // Template-specific markers based on the expected artifact structure
+  const templateMarkers: Record<string, string[]> = {
+    'skill-build': ['## Self-Improvement', '## Guardrails'],
+    'context-build': ['KNOWN AI PATTERNS', 'INSTITUTIONAL CONTEXT'],
+    'spec-new': ['DEFINITION OF DONE', '7. DEFINITION'],
+    'intent-init': ['DECISION AUTHORITY MAP', 'RIGOR TEST'],
+    'eval-harness': ['RESULT LOG', 'TEST CASE'],
+    'constraint-designer': ['ESCALATE', 'MUST NOT DO'],
+  };
+
+  const markers = [
+    ...globalMarkers,
+    ...(templateMarkers[config.id] || []),
+  ];
+
+  return markers.some(marker => response.includes(marker));
 }
 
 async function askFollowUp(io: StdinIO): Promise<boolean> {
