@@ -1,13 +1,17 @@
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { findProjectRoot } from '../util/fs.js';
+import { findProjectRoot, getSkillsDir } from '../util/fs.js';
 import { table } from '../util/format.js';
-import { createSkill, listSkills } from '../skill/manager.js';
+import { listSkills } from '../skill/manager.js';
 import { validateSkill, validateAllSkills } from '../skill/validator.js';
 import { exportSkills, getOutputFilename, type ExportFormat } from '../skill/exporter.js';
-import { SKILL_SCAFFOLD_MD, TILE_SCAFFOLD_JSON } from '../templates/index.js';
+import { ClaudeClient } from '../engine/claude-client.js';
+import { StdinIO } from '../engine/stdin-io.js';
+import { runInterview } from '../engine/interview.js';
+import { SKILL_BUILD } from '../engine/interview-templates.js';
+import { loadConfig, getApiKey, getTier, DEFAULT_MODEL } from '../util/config.js';
 
 function requireProjectRoot(): string {
   const root = findProjectRoot();
@@ -25,21 +29,67 @@ export function registerSkill(program: Command): void {
 
   skill
     .command('new <name>')
-    .description('Create a new skill scaffold')
-    .action((name: string) => {
+    .description('Interview-driven skill creation — explores your codebase and builds a SKILL.md')
+    .option('--model <model>', 'Override Claude model')
+    .option('--dry-run', 'Print messages without calling API')
+    .option('--fresh', 'Start from scratch even if skill already exists')
+    .action(async (name: string, opts) => {
       const root = requireProjectRoot();
-      const scaffoldMd = SKILL_SCAFFOLD_MD;
-      const scaffoldJson = TILE_SCAFFOLD_JSON;
+      const skillDir = join(getSkillsDir(root), name);
+      const skillPath = join(skillDir, 'SKILL.md');
+
+      // Check if skill already exists (unless --fresh)
+      if (existsSync(skillPath) && !opts.fresh) {
+        console.log(chalk.dim(`Skill "${name}" already exists — entering edit mode.`));
+        console.log(chalk.dim('Use --fresh to start from scratch.\n'));
+      }
+
+      // Ensure skill directory exists
+      mkdirSync(skillDir, { recursive: true });
+
+      // Write tile.json if it doesn't exist
+      const tilePath = join(skillDir, 'tile.json');
+      if (!existsSync(tilePath)) {
+        const tile = {
+          name,
+          version: '1.0.0',
+          description: '',
+          triggers: [name],
+          skill_file: 'SKILL.md',
+          eval_suite: null,
+        };
+        writeFileSync(tilePath, JSON.stringify(tile, null, 2), 'utf-8');
+      }
+
+      const config = loadConfig();
+      const apiKey = opts.dryRun ? 'dry-run' : getApiKey(config);
+      const client = new ClaudeClient({
+        apiKey,
+        model: opts.model || config.model || DEFAULT_MODEL,
+      });
+
+      const io = new StdinIO();
 
       try {
-        const skillDir = createSkill(root, name, scaffoldMd, scaffoldJson);
-        console.log(chalk.green(`✓ Created skill "${name}"`));
-        console.log(chalk.dim(`  ${skillDir}/SKILL.md`));
-        console.log(chalk.dim(`  ${skillDir}/tile.json`));
-        console.log(`\nEdit ${chalk.bold('SKILL.md')} to define the skill, then run ${chalk.cyan('mm skill validate ' + name)} to check it.`);
+        const result = await runInterview(SKILL_BUILD, client, io, {
+          dryRun: opts.dryRun,
+          outputFile: skillPath,
+          fresh: opts.fresh,
+          initialInput: `The skill name is "${name}". Explore the codebase and build a SKILL.md for this domain.`,
+          tier: getTier(config),
+        });
+
+        if (result.artifact) {
+          console.log(chalk.green(`\n✓ Created skill "${name}"`));
+          console.log(chalk.dim(`  ${skillPath}`));
+          console.log(chalk.dim(`  ${tilePath}`));
+          console.log(`\nRun ${chalk.cyan('mm skill validate ' + name)} to check it, or ${chalk.cyan('mm eval new ' + name)} to build evals.`);
+        }
       } catch (err: any) {
-        console.error(chalk.red(`✗ ${err.message}`));
+        console.error(chalk.red(`\n✗ ${err.message}`));
         process.exit(1);
+      } finally {
+        io.close();
       }
     });
 

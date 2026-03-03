@@ -8,6 +8,7 @@ import {
   INTENT_INIT,
   EVAL_HARNESS,
   CONSTRAINT_DESIGNER,
+  SKILL_BUILD,
   TEMPLATES,
 } from '../../src/engine/interview-templates.js';
 import type { InterviewConfig } from '../../src/engine/interview-types.js';
@@ -91,8 +92,17 @@ describe('Interview Templates', () => {
     expect(CONSTRAINT_DESIGNER.systemPrompt).toContain('ESCALATE');
   });
 
-  it('TEMPLATES registry has all 8 templates', () => {
-    expect(Object.keys(TEMPLATES)).toHaveLength(8);
+  it('SKILL_BUILD explores codebase and produces SKILL.md', () => {
+    validateTemplate(SKILL_BUILD);
+    expect(SKILL_BUILD.id).toBe('skill-build');
+    expect(SKILL_BUILD.systemPrompt).toContain('skill architect');
+    expect(SKILL_BUILD.systemPrompt).toContain('SKILL.md');
+    expect(SKILL_BUILD.enableTools).toBe(true);
+    expect(SKILL_BUILD.phases).toHaveLength(3);
+  });
+
+  it('TEMPLATES registry has all 9 templates', () => {
+    expect(Object.keys(TEMPLATES)).toHaveLength(9);
     expect(TEMPLATES['diagnose-quick']).toBe(DIAGNOSE_QUICK);
     expect(TEMPLATES['diagnose-deep']).toBe(DIAGNOSE_DEEP);
     expect(TEMPLATES['rewrite']).toBe(REWRITE);
@@ -101,5 +111,6 @@ describe('Interview Templates', () => {
     expect(TEMPLATES['intent-init']).toBe(INTENT_INIT);
     expect(TEMPLATES['eval-harness']).toBe(EVAL_HARNESS);
     expect(TEMPLATES['constraint-designer']).toBe(CONSTRAINT_DESIGNER);
+    expect(TEMPLATES['skill-build']).toBe(SKILL_BUILD);
   });
 });
