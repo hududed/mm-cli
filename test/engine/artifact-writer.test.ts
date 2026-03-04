@@ -101,6 +101,61 @@ Track results.
     expect(result).not.toContain('print("hello")');
   });
 
+  it('handles nested code fences inside the artifact', () => {
+    const response = `Here's your updated skill:
+
+\`\`\`markdown
+---
+name: dedupe
+version: 1.0.0
+triggers:
+  - duplicate
+---
+
+# Deduplication Skill
+
+## Role
+You are a dedup specialist.
+
+## Instructions
+Enhance dedup algorithms.
+
+## Context
+Current infrastructure details.
+
+## Output Format
+
+### Algorithm Improvements
+\`\`\`python
+def normalize_name(name: str) -> str:
+    return name.lower().strip()
+\`\`\`
+
+### SQL Operations
+\`\`\`sql
+UPDATE masajid SET website = COALESCE(website, 'https://example.com');
+\`\`\`
+
+## Guardrails
+- Never merge without human verification
+- Always preserve the more complete record
+
+## Self-Improvement
+Track false positive rates.
+\`\`\`
+
+Let me know if you want to refine anything.`;
+
+    const result = extractArtifact(response);
+    expect(result).toContain('---\nname: dedupe');
+    expect(result).toContain('def normalize_name');
+    expect(result).toContain('UPDATE masajid');
+    expect(result).toContain('## Guardrails');
+    expect(result).toContain('## Self-Improvement');
+    expect(result).not.toContain('Here\'s your updated skill');
+    expect(result).not.toContain('Let me know');
+  });
+
   it('ignores small code blocks that are just examples', () => {
     const response = `Use this command:
 
