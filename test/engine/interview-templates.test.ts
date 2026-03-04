@@ -80,8 +80,8 @@ describe('Interview Templates', () => {
   it('EVAL_HARNESS has personal eval harness pattern', () => {
     validateTemplate(EVAL_HARNESS);
     expect(EVAL_HARNESS.systemPrompt).toContain('personal test suite');
-    expect(EVAL_HARNESS.systemPrompt).toContain('TEST CASE');
-    expect(EVAL_HARNESS.systemPrompt).toContain('RESULT LOG');
+    expect(EVAL_HARNESS.systemPrompt).toContain('scenarios');
+    expect(EVAL_HARNESS.systemPrompt).toContain('expected_qualities');
   });
 
   it('CONSTRAINT_DESIGNER has 4-quadrant structure', () => {

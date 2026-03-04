@@ -701,77 +701,73 @@ Wait for their response.
 
 PHASE 2 — TEST CASE DESIGN
 
-For each of the 3 priority tasks, design a test case:
+For each of the 3 priority tasks, design a test case as a YAML scenario.
 
-=== EVAL SUITE ===
-Created: [date]
-Run against: [note which model/tool]
+FORMAT THE OUTPUT AS VALID YAML matching this exact schema:
 
----
+name: [skill-name]-eval
+skill: .claude/skills/[skill-name]/SKILL.md
+model: claude-sonnet-4-20250514
+judge: claude-sonnet-4-20250514
+scenarios:
+  - name: "[Task Name]"
+    prompt: |
+      [The exact prompt/request to use — based on what the user shared,
+      refined for clarity and self-containment. Use YAML literal block scalar.]
+    context: "[Optional context the model needs — project setup, file locations, etc.]"
+    expected_qualities:
+      - "[Specific quality criterion 1 — observable, checkable]"
+      - "[Specific quality criterion 2]"
+      - "[Specific quality criterion 3]"
+      - "[Specific quality criterion 4]"
+      - "[Specific quality criterion 5]"
+    failure_modes:
+      - "[Common way models get this wrong]"
+      - "[Another common failure mode]"
+    scoring:
+      excellent: 5
+      acceptable: 3
+      poor: 1
+  - name: "[Task 2 Name]"
+    prompt: |
+      [...]
+    expected_qualities: [...]
+    failure_modes: [...]
+    scoring:
+      excellent: 5
+      acceptable: 3
+      poor: 1
+  - name: "[Task 3 Name]"
+    prompt: |
+      [...]
+    expected_qualities: [...]
+    failure_modes: [...]
+    scoring:
+      excellent: 5
+      acceptable: 3
+      poor: 1
 
-TEST CASE 1: [Task Name]
+CRITICAL YAML RULES:
+- Output ONLY valid YAML — no Markdown headers, no checkboxes, no code fences around the YAML
+- Use literal block scalars (|) for multi-line prompts
+- Quote strings that contain colons, brackets, or special YAML characters
+- The skill path should reference the actual skill being evaluated
+- Each scenario must have: name, prompt, expected_qualities (3-5 items), failure_modes (2-3 items), scoring
 
-INPUT:
-[The exact prompt/request to use — based on what the user shared, refined for clarity and self-containment]
+After the YAML, provide:
+"COMPLETENESS CHECK: This eval suite covers: [list of task types tested]. To expand coverage, consider adding scenarios for: [suggestions]."
 
-EXPECTED OUTPUT QUALITIES:
-☐ [Specific quality criterion 1 — observable, checkable]
-☐ [Specific quality criterion 2]
-☐ [Specific quality criterion 3]
-☐ [Specific quality criterion 4]
-☐ [Specific quality criterion 5]
-
-KNOWN FAILURE MODES:
-⚠ [Common way models get this wrong — what to watch for]
-⚠ [Another common failure mode]
-
-SCORING:
-- 5/5 criteria met = Excellent — model handles this task well
-- 3-4/5 criteria met = Acceptable — usable with minor edits
-- 1-2/5 criteria met = Poor — significant rework needed
-- 0/5 criteria met = Fail — faster to do by hand
-
-RESULT LOG:
-| Date | Model/Tool | Score | Notes |
-|------|-----------|-------|-------|
-| | | | |
-
-[Repeat for TEST CASE 2 and TEST CASE 3]
-
----
-
-QUICK-ADD TEMPLATE:
-[Empty template in the same format for the user to add more test cases over time]
-
-EVAL CADENCE:
-- Run full suite: after every major model update
-- Run single test: when trying a new tool or approach
-- Update criteria: monthly, or when your quality standards shift
-
-WHAT TO DO WITH RESULTS:
-- If scores improve: consider delegating more of this task to AI
-- If scores drop: check if your prompt needs updating for the new model, or if the model genuinely regressed
-- If scores plateau at 3/5: this is a specification engineering opportunity — write a fuller spec instead of a single prompt
-
-PHASE 3 — BASELINE RUN
-
-End with: "Your eval suite is ready. To establish your baseline: run all 3 test cases in your current primary AI tool right now, score the outputs, and fill in the first row of each result log. This is your starting point. Next time a new model ships, run the suite again and compare."
+End with: "Your eval suite is ready. Run it with: mm eval run [skill-name]"
 </instructions>
 
 <output>
-A complete, structured eval suite with:
-- 3 detailed test cases with inputs, quality criteria, failure modes, and scoring rubrics
-- A blank template for adding more
-- A cadence and action framework
-- Clear instructions for establishing a baseline
-
-The eval suite should be practical enough that the user will actually use it — not so complex that it becomes a chore.
+A valid YAML eval suite file with 3 test scenarios, each containing prompts, expected qualities, failure modes, and scoring thresholds. Must be parseable by a YAML parser. Followed by a completeness check.
 </output>`,
   phases: [
     { name: 'Task Inventory', instructions: 'List 5-7 tasks, pick top 3' },
-    { name: 'Test Case Design', instructions: 'Design test cases with criteria and scoring' },
+    { name: 'Test Case Design', instructions: 'Design YAML test scenarios with criteria and scoring' },
   ],
-  artifactTemplate: 'EVAL SUITE with test cases, scoring rubrics, and result logs',
+  artifactTemplate: 'YAML eval suite with test scenarios, scoring rubrics, and quality criteria',
   guardrails: [
     '- Quality criteria must be specific and observable — not subjective judgments like "sounds natural" but concrete checks like "uses active voice in >80% of sentences" or "includes specific data points from the source material"',
     '- The input prompt for each test case should be a refined, self-contained version of what the user shared — not their raw conversational prompt',
