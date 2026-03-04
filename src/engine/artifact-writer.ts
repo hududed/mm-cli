@@ -100,7 +100,53 @@ export function writeArtifact(filePath: string, content: string): void {
   const dir = dirname(filePath);
   mkdirSync(dir, { recursive: true });
 
-  const extracted = extractArtifact(content);
+  let extracted = extractArtifact(content);
+
+  // For YAML files, strip trailing non-YAML commentary (e.g. "COMPLETENESS CHECK: ...")
+  if (filePath.endsWith('.yaml') || filePath.endsWith('.yml')) {
+    extracted = stripYamlTrailingCommentary(extracted);
+  }
+
   writeFileSync(filePath, extracted, 'utf-8');
   console.log(chalk.green(`\n✓ Saved to ${filePath}`));
+}
+
+/**
+ * Strip trailing non-YAML content from a YAML artifact.
+ * Claude often adds commentary after the YAML (e.g. "COMPLETENESS CHECK: ...")
+ * which breaks yaml.parse(). We find the last valid YAML line and truncate.
+ */
+function stripYamlTrailingCommentary(content: string): string {
+  const lines = content.split('\n');
+
+  // Walk backwards from the end, skip blank lines and find the first
+  // line that looks like non-YAML commentary (starts with *, #, or uppercase words followed by :)
+  let lastYamlLine = lines.length - 1;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) continue; // skip blank lines
+
+    // These patterns indicate post-YAML commentary, not YAML content:
+    // - Markdown bold: **text**
+    // - Markdown headers: ## text
+    // - Bare text sentences (no YAML indentation/structure)
+    if (
+      trimmed.startsWith('**') ||
+      trimmed.startsWith('##') ||
+      trimmed.startsWith('Your eval') ||
+      trimmed.startsWith('COMPLETENESS') ||
+      trimmed.startsWith('Run it with')
+    ) {
+      lastYamlLine = i - 1;
+    } else {
+      break;
+    }
+  }
+
+  // Trim trailing blank lines
+  while (lastYamlLine > 0 && !lines[lastYamlLine].trim()) {
+    lastYamlLine--;
+  }
+
+  return lines.slice(0, lastYamlLine + 1).join('\n') + '\n';
 }
