@@ -11,14 +11,14 @@ export const CODEBASE_TOOLS: Anthropic.Tool[] = [
   {
     name: 'read_file',
     description:
-      'Read a file from the project. Returns its full contents. Use this to understand existing code, configs, and documentation before writing specifications.',
+      'Read a text file. Accepts relative paths (resolved against project root) or absolute paths for cross-directory access. For PDFs, use read_pdf instead.',
     input_schema: {
       type: 'object' as const,
       properties: {
         path: {
           type: 'string',
           description:
-            'File path relative to project root (e.g. "src/index.ts", "lib/db/schema.ts", "CLAUDE.md")',
+            'File path relative to project root (e.g. "src/index.ts") or absolute path (e.g. "/Users/foo/other-project/README.md")',
         },
       },
       required: ['path'],
@@ -68,6 +68,27 @@ export const CODEBASE_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: ['pattern'],
+    },
+  },
+  {
+    name: 'read_pdf',
+    description:
+      'Extract text from a PDF file. For large PDFs (20+ pages), use the pages parameter to read in chunks. Accepts relative or absolute paths. Requires pdftotext (poppler).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        path: {
+          type: 'string',
+          description:
+            'PDF file path relative to project root or absolute (e.g. "docs/design.pdf", "/Users/foo/Documents/spec.pdf")',
+        },
+        pages: {
+          type: 'string',
+          description:
+            'Page range to extract, e.g. "1-10", "5-15", "5". Omit to read entire PDF. Use for large PDFs to stay within output limits.',
+        },
+      },
+      required: ['path'],
     },
   },
 ];
@@ -139,19 +160,27 @@ export async function executeTool(
 
   switch (name) {
     case 'read_file': {
-      const filePath = resolve(cwd, input.path as string);
-      if (!filePath.startsWith(cwd)) {
-        return 'Error: Cannot read files outside the project directory';
-      }
+      const rawPath = input.path as string;
+      const filePath = rawPath.startsWith('/') ? rawPath : resolve(cwd, rawPath);
       if (!existsSync(filePath)) {
-        return `Error: File not found: ${input.path}`;
+        return `Error: File not found: ${rawPath}`;
       }
       const stat = statSync(filePath);
       if (stat.isDirectory()) {
-        return `Error: ${input.path} is a directory, not a file. Use list_files to explore directories.`;
+        return `Error: ${rawPath} is a directory, not a file. Use list_files to explore directories.`;
+      }
+      if (filePath.toLowerCase().endsWith('.pdf')) {
+        return `Error: ${rawPath} is a PDF file. Use the read_pdf tool instead, which extracts text content. You can specify a page range for large PDFs.`;
       }
       try {
-        const content = readFileSync(filePath, 'utf-8');
+        const buffer = readFileSync(filePath);
+        const checkLength = Math.min(buffer.length, 8192);
+        for (let i = 0; i < checkLength; i++) {
+          if (buffer[i] === 0) {
+            return `Error: ${rawPath} appears to be a binary file and cannot be read as text.`;
+          }
+        }
+        const content = buffer.toString('utf-8');
         if (content.length > MAX_OUTPUT) {
           return (
             content.slice(0, MAX_OUTPUT) +
@@ -223,6 +252,53 @@ export async function executeTool(
         return result || 'No matches found';
       } catch {
         return 'No matches found';
+      }
+    }
+
+    case 'read_pdf': {
+      const rawPath = input.path as string;
+      const pdfPath = rawPath.startsWith('/') ? rawPath : resolve(cwd, rawPath);
+      if (!existsSync(pdfPath)) {
+        return `Error: File not found: ${rawPath}`;
+      }
+      if (!pdfPath.toLowerCase().endsWith('.pdf')) {
+        return `Error: ${rawPath} does not appear to be a PDF file. Use read_file for text files.`;
+      }
+      try {
+        execSync('which pdftotext', { encoding: 'utf-8', timeout: 3000 });
+      } catch {
+        return 'Error: pdftotext is not installed. Install poppler to read PDFs:\n  macOS:  brew install poppler\n  Ubuntu: sudo apt install poppler-utils\n  Fedora: sudo dnf install poppler-utils';
+      }
+      try {
+        let cmd = 'pdftotext';
+        if (input.pages) {
+          const pages = input.pages as string;
+          const rangeMatch = pages.match(/^(\d+)(?:-(\d+))?$/);
+          if (!rangeMatch) {
+            return `Error: Invalid page range "${pages}". Use format like "1-10", "5", or "5-15".`;
+          }
+          const first = rangeMatch[1];
+          const last = rangeMatch[2] || first;
+          cmd += ` -f ${first} -l ${last}`;
+        }
+        cmd += ` "${pdfPath.replace(/"/g, '\\"')}" -`;
+        const result = execSync(cmd, { encoding: 'utf-8', timeout: 30000 });
+        if (!result.trim()) {
+          return 'PDF extracted but contains no text content (may be a scanned/image-only PDF).';
+        }
+        if (result.length > MAX_OUTPUT) {
+          return (
+            result.slice(0, MAX_OUTPUT) +
+            `\n\n... (truncated, output is ${result.length} chars total. Use the pages parameter to read specific page ranges.)`
+          );
+        }
+        return result;
+      } catch (err: unknown) {
+        const msg = (err as Error).message;
+        if (msg.includes('TIMEOUT')) {
+          return 'Error: PDF extraction timed out. The file may be too large — use the pages parameter to read a specific range.';
+        }
+        return `Error reading PDF: ${msg}`;
       }
     }
 

@@ -235,9 +235,10 @@ function buildSystemPrompt(config: InterviewConfig, hasWebTools: boolean): strin
 You have access to tools that let you explore the project codebase${hasWebTools ? ' AND search the web' : ''}:
 
 CODEBASE TOOLS:
-- read_file: Read any file in the project
+- read_file: Read any text file. Accepts relative paths (project root) or absolute paths (cross-directory). For PDFs, use read_pdf.
 - list_files: Find files by name pattern (e.g. "*.ts", "route.ts", "schema*")
-- search_files: Search file contents with regex patterns`;
+- search_files: Search file contents with regex patterns
+- read_pdf: Extract text from PDF files. Supports page ranges for large PDFs (e.g. pages "1-10"). Accepts relative or absolute paths.`;
 
     if (hasWebTools) {
       prompt += `
@@ -270,7 +271,9 @@ When the interview begins:
 During the interview:
 - When the user mentions a file, feature, or module — read it before responding
 - When the user describes a problem — search for the relevant code before asking clarifying questions
-- When you need to understand what's already implemented — read the code, don't ask${hasWebTools ? '\n- When the user asks about techniques, algorithms, or research — web_search for it' : ''}
+- When you need to understand what's already implemented — read the code, don't ask
+- When the user references a file outside the project — use read_file with the absolute path
+- When the user references a PDF document — use read_pdf to extract text. For large PDFs (20+ pages), read in chunks using the pages parameter (e.g. "1-10", then "11-20")${hasWebTools ? '\n- When the user asks about techniques, algorithms, or research — web_search for it' : ''}
 - Reference specific files, functions, line numbers, and patterns in your questions and output
 - Never use generic placeholders like "[your function]" or "[existing module]" — name the actual code
 

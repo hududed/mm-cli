@@ -12,7 +12,7 @@ export interface InterviewConfig {
   artifactTemplate: string;
   guardrails: string[];
   outputFile?: string;
-  /** When true, Claude can explore the codebase via read_file, list_files, search_files tools */
+  /** When true, Claude can explore the codebase via read_file, list_files, search_files, read_pdf tools */
   enableTools?: boolean;
 }
 
