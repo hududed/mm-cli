@@ -19,6 +19,8 @@ export interface InterviewOptions {
   fresh?: boolean;
   /** Product tier — controls which tools are available. Default: 'free'. */
   tier?: MmTier;
+  /** Extra context injected into system prompt (e.g. skill name/path for eval). */
+  extraContext?: string;
 }
 
 /**
@@ -48,7 +50,7 @@ export async function runInterview(
   const tier: MmTier = options.tier || 'free';
   const tools = config.enableTools ? getToolsForTier(tier) : [];
   const hasWebTools = tools.some(t => t.name === 'web_search');
-  const systemPrompt = buildSystemPrompt(config, hasWebTools);
+  const systemPrompt = buildSystemPrompt(config, hasWebTools, options.extraContext);
 
   if (options.dryRun) {
     console.log(chalk.yellow('\n--- DRY RUN ---'));
@@ -219,12 +221,16 @@ export async function runInterview(
   };
 }
 
-function buildSystemPrompt(config: InterviewConfig, hasWebTools: boolean): string {
+function buildSystemPrompt(config: InterviewConfig, hasWebTools: boolean, extraContext?: string): string {
   let prompt = config.systemPrompt;
 
   // Inject current date so the model doesn't hallucinate one
   const today = new Date().toISOString().split('T')[0];
   prompt += `\n\nCurrent date: ${today}`;
+
+  if (extraContext) {
+    prompt += `\n\n<context>\n${extraContext}\n</context>`;
+  }
 
   if (config.guardrails.length > 0) {
     prompt += '\n\n<guardrails>\n' + config.guardrails.join('\n') + '\n</guardrails>';

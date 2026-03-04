@@ -77,6 +77,7 @@ export function registerEval(program: Command): void {
           outputFile: join('evals', skill, 'eval.yaml'),
           fresh: opts.fresh,
           tier: getTier(config),
+          extraContext: `Skill being evaluated: ${skill}\nSkill path: .claude/skills/${skill}/SKILL.md\nEval output: evals/${skill}/eval.yaml\n\nIMPORTANT: Use this exact skill path in the generated YAML "skill" field.`,
         });
       } catch (err: any) {
         console.error(chalk.red(`\n✗ ${err.message}`));
