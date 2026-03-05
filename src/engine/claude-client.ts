@@ -84,7 +84,8 @@ export class ClaudeClient {
   ): Promise<SendWithToolsResult> {
     const toolCalls: ToolCall[] = [];
     const currentMessages = [...apiMessages];
-    let loopsRemaining = 25;
+    const MAX_TOOL_LOOPS = 15;
+    let loopsRemaining = MAX_TOOL_LOOPS;
 
     while (loopsRemaining-- > 0) {
       const response = await this.client.messages.create({
@@ -128,6 +129,14 @@ export class ClaudeClient {
           tool_use_id: block.id,
           content: result,
         });
+      }
+
+      // Nudge Claude to wrap up when approaching the tool limit
+      if (loopsRemaining <= 2 && toolResults.length > 0) {
+        const last = toolResults[toolResults.length - 1];
+        const existing = typeof last.content === 'string' ? last.content : '';
+        last.content = existing +
+          '\n\n[SYSTEM: You are approaching the tool use limit. Stop exploring and respond to the user now. Summarize what you have found and ask your interview question.]';
       }
 
       // Send tool results back to Claude
