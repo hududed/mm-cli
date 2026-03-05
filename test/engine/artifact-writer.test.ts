@@ -156,6 +156,56 @@ Let me know if you want to refine anything.`;
     expect(result).not.toContain('Let me know');
   });
 
+  it('handles bare code fences (no language tag) inside the artifact', () => {
+    const response = `Here's your deploy skill:
+
+\`\`\`markdown
+---
+name: deploy-protocol
+version: 1.0.0
+triggers:
+  - "deploy"
+---
+
+# Deploy Protocol Skill
+
+## Role
+You are a deployment protocol enforcer.
+
+## Instructions
+
+### Post-Deploy Checklist
+\`\`\`bash
+curl -s https://example.com/api/status
+\`\`\`
+
+### Pre-Deploy Template
+\`\`\`
+Environment: [Bawarchi|ICFC]
+ACTIVE_SKILL: [verified]
+Config: [wrangler.jsonc]
+\`\`\`
+
+## Guardrails
+- Never deploy without verification
+- Always confirm target environment
+
+## Self-Improvement
+Track deployment success rates.
+\`\`\`
+
+Let me know if you want changes.`;
+
+    const result = extractArtifact(response);
+    expect(result).toContain('---\nname: deploy-protocol');
+    expect(result).toContain('curl -s https://example.com/api/status');
+    expect(result).toContain('Environment: [Bawarchi|ICFC]');
+    expect(result).toContain('## Guardrails');
+    expect(result).toContain('## Self-Improvement');
+    expect(result).not.toContain('Here\'s your deploy skill');
+    expect(result).not.toContain('Let me know');
+  });
+
   it('ignores small code blocks that are just examples', () => {
     const response = `Use this command:
 

@@ -33,17 +33,16 @@ export function extractArtifact(response: string): string {
 
 /**
  * Parse top-level fenced code blocks, correctly handling nested fences.
- * A ``` line inside a top-level fence is treated as nested content, not a closer,
- * unless it's a bare ``` on its own line (matching the outer fence).
  *
- * Strategy: track depth. Opening fence = ```<lang> at depth 0 starts a block.
- * Bare ``` at depth 1 could be a nested closer or the outer closer —
- * we check if it's followed by more content that looks like it's still inside.
- * Simpler approach: the outer fence uses ```markdown (or ```), inner fences use
- * ```python, ```sql, etc. We close the outer block only when we see a bare ```
- * that is NOT immediately followed by a language tag on the same line.
+ * Strategy: track fence depth properly. Every ``` (with or without lang tag)
+ * toggles depth. The outer fence opens at depth 0→1. Inner fences toggle
+ * between 1→2 and 2→1. Only when depth goes from 1→0 do we close the
+ * outer block.
  *
- * Actually simplest correct approach: count fence depth.
+ * This handles:
+ * - ```markdown wrapping with ```python/```sql nested inside (tagged fences)
+ * - ```markdown wrapping with bare ``` blocks nested inside (untagged fences)
+ * - Mixed tagged and untagged nested fences
  */
 function parseFencedBlocks(text: string): string[] {
   const lines = text.split('\n');
@@ -51,40 +50,69 @@ function parseFencedBlocks(text: string): string[] {
   let depth = 0;
   let currentBlock: string[] = [];
 
-  for (const line of lines) {
+  for (let idx = 0; idx < lines.length; idx++) {
+    const line = lines[idx];
     const trimmed = line.trim();
-    const isFenceOpen = /^```\w*\s*$/.test(trimmed) && trimmed !== '```';
-    const isFenceClose = trimmed === '```';
+    const isFence = /^```\w*\s*$/.test(trimmed); // matches ```lang or bare ```
 
-    if (depth === 0) {
-      if (isFenceOpen) {
-        // Start a new top-level block
-        depth = 1;
-        currentBlock = [];
-      } else if (isFenceClose) {
-        // Bare ``` at depth 0 — also an opening fence (no lang tag)
-        depth = 1;
-        currentBlock = [];
+    if (!isFence) {
+      if (depth >= 1) {
+        currentBlock.push(line);
       }
-    } else if (depth === 1 && isFenceClose) {
-      // Check if this close belongs to a nested fence or the outer fence.
-      // If we have an unclosed nested fence, this closes the nested one.
-      // Otherwise it closes the outer one.
-      // Count nested opens vs closes within currentBlock to decide.
-      const nestedOpens = currentBlock.filter(l => /^```\w+\s*$/.test(l.trim())).length;
-      const nestedCloses = currentBlock.filter(l => l.trim() === '```').length;
+      continue;
+    }
 
-      if (nestedOpens > nestedCloses) {
-        // This ``` closes a nested fence, not the outer one
+    // It's a fence line
+    if (depth === 0) {
+      // Opening a new top-level block
+      depth = 1;
+      currentBlock = [];
+    } else if (depth === 1) {
+      // Could be opening a nested fence or closing the outer one.
+      const isTaggedOpen = trimmed !== '```';
+      if (isTaggedOpen) {
+        // ```python, ```bash, etc. — always a nested open
+        depth = 2;
         currentBlock.push(line);
       } else {
-        // This closes the outer fence
-        blocks.push(currentBlock.join('\n'));
-        depth = 0;
-        currentBlock = [];
+        // Bare ``` — could close outer or open a nested bare block.
+        // Look ahead for another bare ``` that would close this one.
+        const remaining = lines.slice(idx + 1);
+        let foundMatchingClose = false;
+        let lookAheadDepth = 0;
+        for (const ahead of remaining) {
+          const aheadTrimmed = ahead.trim();
+          if (/^```\w+\s*$/.test(aheadTrimmed)) {
+            lookAheadDepth++;
+          } else if (aheadTrimmed === '```') {
+            if (lookAheadDepth > 0) {
+              lookAheadDepth--;
+            } else {
+              foundMatchingClose = true;
+              break;
+            }
+          }
+        }
+        if (foundMatchingClose) {
+          // This bare ``` opens a nested block, the matching one closes it
+          depth = 2;
+          currentBlock.push(line);
+        } else {
+          // No matching close ahead — this closes the outer fence
+          blocks.push(currentBlock.join('\n'));
+          depth = 0;
+          currentBlock = [];
+        }
       }
-    } else if (depth >= 1) {
+    } else {
+      // depth >= 2 — inside nested fence
       currentBlock.push(line);
+      if (trimmed === '```') {
+        depth--;
+      } else {
+        // ```lang inside nested — deeper nesting
+        depth++;
+      }
     }
   }
 
