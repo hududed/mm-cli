@@ -9,6 +9,9 @@ export { INTENT_INIT } from './intent-init.js';
 export { EVAL_HARNESS } from './eval-harness.js';
 export { CONSTRAINT_DESIGNER } from './constraint-designer.js';
 export { SKILL_BUILD } from './skill-build.js';
+export { HARNESS_AUDIT } from './harness-audit.js';
+export { HARNESS_ROUTE } from './harness-route.js';
+export { HARNESS_BRIEF } from './harness-brief.js';
 
 import { DIAGNOSE_QUICK } from './diagnose-quick.js';
 import { DIAGNOSE_DEEP } from './diagnose-deep.js';
@@ -19,6 +22,9 @@ import { INTENT_INIT } from './intent-init.js';
 import { EVAL_HARNESS } from './eval-harness.js';
 import { CONSTRAINT_DESIGNER } from './constraint-designer.js';
 import { SKILL_BUILD } from './skill-build.js';
+import { HARNESS_AUDIT } from './harness-audit.js';
+import { HARNESS_ROUTE } from './harness-route.js';
+import { HARNESS_BRIEF } from './harness-brief.js';
 
 export const TEMPLATES: Record<string, InterviewConfig> = {
   'diagnose-quick': DIAGNOSE_QUICK,
@@ -30,4 +36,7 @@ export const TEMPLATES: Record<string, InterviewConfig> = {
   'eval-harness': EVAL_HARNESS,
   'constraint-designer': CONSTRAINT_DESIGNER,
   'skill-build': SKILL_BUILD,
+  'harness-audit': HARNESS_AUDIT,
+  'harness-route': HARNESS_ROUTE,
+  'harness-brief': HARNESS_BRIEF,
 };

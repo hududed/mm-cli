@@ -321,6 +321,9 @@ function isLikelyComplete(response: string, config: InterviewConfig): boolean {
     'intent-init': ['DECISION AUTHORITY MAP', 'RIGOR TEST'],
     'eval-harness': ['RESULT LOG', 'TEST CASE'],
     'constraint-designer': ['ESCALATE', 'MUST NOT DO'],
+    'harness-audit': ['LOCK-IN SCORECARD', 'THREE ACTIONS THIS WEEK', 'TASK ROUTING MAP'],
+    'harness-route': ['Recommended Harness', 'Verification Plan', 'Setup Checklist'],
+    'harness-brief': ['ARCHITECTURE DECISION BRIEF', 'ONE THING TO DECIDE', 'DECISION TIMELINE'],
   };
 
   const markers = [
