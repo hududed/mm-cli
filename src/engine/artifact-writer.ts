@@ -11,24 +11,81 @@ import chalk from 'chalk';
  * by parsing line-by-line and tracking fence depth.
  */
 export function extractArtifact(response: string): string {
+  // Fast path: if the response contains a tagged markdown fence (```markdown or ```md),
+  // extract from the opening tag to the LAST bare ``` in the response.
+  // This avoids the complex nested-fence parsing which fails when the artifact
+  // itself contains bare ``` code blocks (e.g. output format examples in SKILL.md).
+  const taggedExtract = extractTaggedBlock(response);
+  if (taggedExtract) {
+    return taggedExtract.trim() + '\n';
+  }
+
+  // Fallback: use the general fence parser for non-tagged responses
   const blocks = parseFencedBlocks(response);
 
   if (blocks.length === 0) return response;
 
   // Find the block that looks most like a complete artifact:
-  // prefer blocks with YAML frontmatter (---), then longest block
+  // prefer blocks with YAML frontmatter (---), then longest block.
+  // But only extract a block if it's a substantial portion of the response —
+  // a small fenced block inside a large response is an embedded example, not the artifact.
   const withFrontmatter = blocks.filter(b => b.trimStart().startsWith('---'));
   if (withFrontmatter.length > 0) {
-    return withFrontmatter.reduce((a, b) => a.length > b.length ? a : b).trim() + '\n';
+    const best = withFrontmatter.reduce((a, b) => a.length > b.length ? a : b);
+    if (best.length > response.length * 0.3) {
+      return best.trim() + '\n';
+    }
   }
 
-  // No frontmatter blocks — return the longest fenced block
+  // No frontmatter blocks — return the longest fenced block if it's substantial
   const longest = blocks.reduce((a, b) => a.length > b.length ? a : b);
-  if (longest.split('\n').length > 20) {
+  if (longest.split('\n').length > 20 && longest.length > response.length * 0.3) {
     return longest.trim() + '\n';
   }
 
   return response;
+}
+
+/**
+ * Extract content from a tagged markdown fence (```markdown or ```md)
+ * by finding the opening tag and the LAST bare ``` in the response.
+ *
+ * This is simpler and more reliable than depth-tracking when the artifact
+ * contains nested bare ``` blocks (common in SKILL.md output format sections).
+ */
+function extractTaggedBlock(response: string): string | null {
+  const lines = response.split('\n');
+
+  // Find the first ```markdown or ```md line
+  let startIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (/^```(?:markdown|md)\s*$/.test(trimmed)) {
+      startIdx = i;
+      break;
+    }
+  }
+
+  if (startIdx === -1) return null;
+
+  // Find the LAST bare ``` in the response — that's the outer close
+  let endIdx = -1;
+  for (let i = lines.length - 1; i > startIdx; i--) {
+    if (lines[i].trim() === '```') {
+      endIdx = i;
+      break;
+    }
+  }
+
+  if (endIdx === -1) return null;
+
+  // Extract content between the fences
+  const content = lines.slice(startIdx + 1, endIdx).join('\n');
+
+  // Sanity check: the extracted block should be substantial
+  if (content.length < response.length * 0.2) return null;
+
+  return content;
 }
 
 /**

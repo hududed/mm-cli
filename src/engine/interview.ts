@@ -88,12 +88,21 @@ export async function runInterview(
   // send it to Claude immediately so it can explore the codebase and respond before
   // prompting the user. This lets Claude's first questions be grounded in actual code.
   if (options.initialInput) {
-    messages.push({ role: 'user', content: options.initialInput });
+    // Even with initialInput, check for existing artifact to enable edit mode
+    let userMsg = options.initialInput;
+    const existingContent = loadExistingArtifact(options);
+    if (existingContent) {
+      console.log(chalk.cyan(`Found existing ${options.outputFile} — entering edit mode.`));
+      console.log(chalk.dim('Use --fresh to start from scratch.\n'));
+      userMsg += `\n\nThe user has an existing document that they want to refine. Here it is:\n\n---\n${existingContent}\n---\n\nDo NOT re-interview from scratch. Instead:\n1. Briefly summarize what the existing document covers\n2. Ask what the user wants to add, change, or refine\n3. If the user asks for research or new sections, do that and produce an updated version of the FULL document`;
+    }
+
+    messages.push({ role: 'user', content: userMsg });
 
     let greeting: string;
 
     if (config.enableTools && apiMessages) {
-      apiMessages.push({ role: 'user', content: options.initialInput });
+      apiMessages.push({ role: 'user', content: userMsg });
       const result = await client.sendWithTools(
         systemPrompt, apiMessages, tools,
         (name, input) => printToolUse(name, input)
@@ -102,7 +111,7 @@ export async function runInterview(
       apiMessages = result.apiMessages;
     } else {
       greeting = await client.send(systemPrompt, [
-        { role: 'user', content: options.initialInput },
+        { role: 'user', content: userMsg },
       ]);
     }
 
@@ -142,6 +151,7 @@ export async function runInterview(
 
   let turn = 0;
   let saved = false;
+  let savedContent = '';
 
   while (turn < MAX_TURNS) {
     turn++;
@@ -183,6 +193,7 @@ export async function runInterview(
       if (options.outputFile) {
         writeArtifact(options.outputFile, response);
         saved = true;
+        savedContent = response;
       }
 
       // 2. Explicit follow-up — say exactly what continuing does, default N
@@ -196,12 +207,8 @@ export async function runInterview(
   const artifact = lastAssistant?.content || '';
 
   // If user refined during follow-up, re-save with latest content
-  if (options.outputFile && saved && artifact) {
-    const firstSavedContent = messages.filter(m => m.role === 'assistant').reverse()
-      .find((_, i) => i > 0)?.content;
-    if (artifact !== firstSavedContent) {
-      writeArtifact(options.outputFile, artifact);
-    }
+  if (options.outputFile && saved && artifact && artifact !== savedContent) {
+    writeArtifact(options.outputFile, artifact);
   }
 
   // If interview was interrupted before completion detection, still save if we have content
@@ -222,6 +229,9 @@ function buildSystemPrompt(config: InterviewConfig, hasWebTools: boolean, extraC
   // Inject current date so the model doesn't hallucinate one
   const today = new Date().toISOString().split('T')[0];
   prompt += `\n\nCurrent date: ${today}`;
+
+  // Global rule: prevent bare triple backticks in output (breaks artifact extraction)
+  prompt += `\n\nFORMATTING RULE: When producing artifacts or documents that contain code blocks, ALWAYS use a language tag (e.g. \`\`\`text, \`\`\`bash, \`\`\`yaml, \`\`\`markdown). NEVER use bare \`\`\` (triple backticks without a language tag). This is critical for correct file saving.`;
 
   if (extraContext) {
     prompt += `\n\n<context>\n${extraContext}\n</context>`;
