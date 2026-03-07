@@ -5,7 +5,7 @@ import { ClaudeClient } from '../engine/claude-client.js';
 import { StdinIO } from '../engine/stdin-io.js';
 import { runInterview } from '../engine/interview.js';
 import { REWRITE } from '../engine/interview-templates.js';
-import { loadConfig, getApiKey, getTier, DEFAULT_MODEL } from '../util/config.js';
+import { loadConfig, getApiKey, DEFAULT_MODEL } from '../util/config.js';
 
 export function registerRewrite(program: Command): void {
   program
@@ -48,7 +48,6 @@ export function registerRewrite(program: Command): void {
           dryRun: opts.dryRun,
           initialInput,
           outputFile: opts.save ? 'REWRITE.md' : undefined,
-          tier: getTier(config),
         });
       } catch (err: any) {
         console.error(chalk.red(`\n✗ ${err.message}`));

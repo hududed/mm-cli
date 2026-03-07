@@ -1,5 +1,4 @@
 import type Anthropic from '@anthropic-ai/sdk';
-import type { MmTier } from '../../util/config.js';
 
 export const CODEBASE_TOOLS: Anthropic.Tool[] = [
   {
@@ -133,11 +132,8 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
 ];
 
 /**
- * Return the tools available for a given tier.
- * - free: codebase tools only (read_file, list_files, search_files)
- * - pro/enterprise: all tools (codebase + web_search + web_fetch)
+ * Return all available tools for interviews.
  */
-export function getToolsForTier(tier: MmTier): Anthropic.Tool[] {
-  if (tier === 'free') return CODEBASE_TOOLS;
+export function getTools(): Anthropic.Tool[] {
   return ALL_TOOLS;
 }

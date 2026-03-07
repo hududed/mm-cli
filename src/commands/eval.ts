@@ -9,7 +9,7 @@ import { writeArtifact } from '../engine/artifact-writer.js';  // still needed f
 import { EVAL_HARNESS } from '../engine/interview-templates.js';
 import { loadEvalSuite, runEvalSuite } from '../eval/runner.js';
 import { compareResults } from '../eval/comparator.js';
-import { loadConfig, getApiKey, getTier, DEFAULT_MODEL } from '../util/config.js';
+import { loadConfig, getApiKey, DEFAULT_MODEL } from '../util/config.js';
 import { findProjectRoot, getSkillsDir } from '../util/fs.js';
 import { readSkillMd } from '../skill/manager.js';
 
@@ -76,7 +76,6 @@ export function registerEval(program: Command): void {
           dryRun: opts.dryRun,
           outputFile: join('evals', skill, 'eval.yaml'),
           fresh: opts.fresh,
-          tier: getTier(config),
           extraContext: `Skill being evaluated: ${skill}\nSkill path: .claude/skills/${skill}/SKILL.md\nEval output: evals/${skill}/eval.yaml\n\nIMPORTANT: Use this exact skill path in the generated YAML "skill" field.`,
         });
       } catch (err: any) {

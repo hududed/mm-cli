@@ -5,8 +5,7 @@ import type { InterviewConfig, InterviewResult, Message } from './interview-type
 import type { ClaudeClient } from './claude-client.js';
 import type { StdinIO } from './stdin-io.js';
 import { writeArtifact } from './artifact-writer.js';
-import { getToolsForTier } from './tools.js';
-import type { MmTier } from '../util/config.js';
+import { getTools } from './tools.js';
 
 const MAX_TURNS = 30;
 
@@ -17,8 +16,6 @@ export interface InterviewOptions {
   outputFile?: string;
   /** When true, ignore existing output file and start from scratch. */
   fresh?: boolean;
-  /** Product tier — controls which tools are available. Default: 'free'. */
-  tier?: MmTier;
   /** Extra context injected into system prompt (e.g. skill name/path for eval). */
   extraContext?: string;
 }
@@ -47,8 +44,7 @@ export async function runInterview(
   options: InterviewOptions = {}
 ): Promise<InterviewResult> {
   const messages: Message[] = [];
-  const tier: MmTier = options.tier || 'free';
-  const tools = config.enableTools ? getToolsForTier(tier) : [];
+  const tools = config.enableTools ? getTools() : [];
   const hasWebTools = tools.some(t => t.name === 'web_search');
   const systemPrompt = buildSystemPrompt(config, hasWebTools, options.extraContext);
 
@@ -57,7 +53,7 @@ export async function runInterview(
     console.log(chalk.dim('System prompt:'));
     console.log(systemPrompt);
     if (config.enableTools) {
-      console.log(chalk.dim(`\nTools enabled (${tier} tier):`));
+      console.log(chalk.dim('\nTools enabled:'));
       for (const tool of tools) {
         console.log(chalk.dim(`  - ${tool.name}: ${tool.description}`));
       }
@@ -77,7 +73,6 @@ export async function runInterview(
       console.log(chalk.dim('Tools enabled — Claude can read your project files and search the web.'));
     } else {
       console.log(chalk.dim('Tools enabled — Claude can read your project files.'));
-      console.log(chalk.dim('Web search available with mm Pro — https://mm.dev/pro'));
     }
   }
   console.log(chalk.dim('Press Ctrl-C to exit at any time.\n'));

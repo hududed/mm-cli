@@ -444,7 +444,7 @@ scenarios:
 | Auto-generate SKILL.md from codebase | Unbounded. `mm skill new` scaffolds; human fills |
 | Cloud sync / team features | Local-first. Git is the sync mechanism. |
 | Custom interview questions | Templates are fixed for v1. |
-| CI integration | Manual `mm eval run`. API tier gets pipeline gates. |
+| CI integration | Manual `mm eval run`. Hosted API gets pipeline gates (future). |
 | Internationalization | English only |
 
 ---
