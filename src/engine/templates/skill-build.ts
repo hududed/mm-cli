@@ -69,6 +69,7 @@ CRITICAL RULES:
 - The skill file must be under 200 lines (token-efficient)
 - Include the YAML frontmatter — it's required for validation
 - Every guardrail should be specific enough to evaluate in an A/B test
+- NEVER use bare \`\`\` (triple backticks) inside the skill content. If you need code blocks in the skill file, ALWAYS use a language tag like \`\`\`text, \`\`\`bash, \`\`\`yaml, etc. Bare triple backticks break the artifact parser.
 </instructions>
 
 <output>

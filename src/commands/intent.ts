@@ -4,7 +4,7 @@ import { ClaudeClient } from '../engine/claude-client.js';
 import { StdinIO } from '../engine/stdin-io.js';
 import { runInterview } from '../engine/interview.js';
 import { INTENT_INIT } from '../engine/interview-templates.js';
-import { loadConfig, getApiKey, getTier, DEFAULT_MODEL } from '../util/config.js';
+import { loadConfig, getApiKey, DEFAULT_MODEL } from '../util/config.js';
 
 export function registerIntent(program: Command): void {
   const intent = program
@@ -33,7 +33,6 @@ export function registerIntent(program: Command): void {
           dryRun: opts.dryRun,
           outputFile: opts.output,
           fresh: opts.fresh,
-          tier: getTier(config),
         });
       } catch (err: any) {
         console.error(chalk.red(`\n✗ ${err.message}`));

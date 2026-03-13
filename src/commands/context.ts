@@ -6,7 +6,7 @@ import { ClaudeClient } from '../engine/claude-client.js';
 import { StdinIO } from '../engine/stdin-io.js';
 import { runInterview } from '../engine/interview.js';
 import { CONTEXT_BUILD } from '../engine/interview-templates.js';
-import { loadConfig, getApiKey, getTier, DEFAULT_MODEL } from '../util/config.js';
+import { loadConfig, getApiKey, DEFAULT_MODEL } from '../util/config.js';
 import { findProjectRoot, getSkillsDir } from '../util/fs.js';
 
 /**
@@ -218,7 +218,6 @@ export function registerContext(program: Command): void {
           dryRun: opts.dryRun,
           outputFile,
           fresh: opts.fresh,
-          tier: getTier(config),
         });
 
         if (result.artifact) {

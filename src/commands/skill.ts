@@ -11,7 +11,7 @@ import { ClaudeClient } from '../engine/claude-client.js';
 import { StdinIO } from '../engine/stdin-io.js';
 import { runInterview } from '../engine/interview.js';
 import { SKILL_BUILD } from '../engine/interview-templates.js';
-import { loadConfig, getApiKey, getTier, DEFAULT_MODEL } from '../util/config.js';
+import { loadConfig, getApiKey, DEFAULT_MODEL } from '../util/config.js';
 
 function requireProjectRoot(): string {
   const root = findProjectRoot();
@@ -76,7 +76,6 @@ export function registerSkill(program: Command): void {
           outputFile: skillPath,
           fresh: opts.fresh,
           initialInput: `The skill name is "${name}". Explore the codebase and build a SKILL.md for this domain.`,
-          tier: getTier(config),
         });
 
         if (result.artifact) {

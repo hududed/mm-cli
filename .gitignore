@@ -4,3 +4,9 @@ dist/
 *.tsbuildinfo
 evals/*/results/
 .mmrc
+STRATEGY.md
+specs/
+/verify/
+HARNESS-AUDIT.md
+HARNESS-BRIEF.md
+drafts/

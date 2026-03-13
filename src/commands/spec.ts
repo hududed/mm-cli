@@ -5,7 +5,7 @@ import { ClaudeClient } from '../engine/claude-client.js';
 import { StdinIO } from '../engine/stdin-io.js';
 import { runInterview } from '../engine/interview.js';
 import { SPEC_NEW } from '../engine/interview-templates.js';
-import { loadConfig, getApiKey, getTier, DEFAULT_MODEL } from '../util/config.js';
+import { loadConfig, getApiKey, DEFAULT_MODEL } from '../util/config.js';
 
 export function registerSpec(program: Command): void {
   const spec = program
@@ -34,7 +34,6 @@ export function registerSpec(program: Command): void {
           dryRun: opts.dryRun,
           outputFile,
           fresh: opts.fresh,
-          tier: getTier(config),
         });
       } catch (err: any) {
         console.error(chalk.red(`\n✗ ${err.message}`));

@@ -7,7 +7,7 @@ import { StdinIO } from '../engine/stdin-io.js';
 import { runInterview } from '../engine/interview.js';
 import { HARNESS_AUDIT, HARNESS_ROUTE, HARNESS_BRIEF } from '../engine/interview-templates.js';
 import { runSpecVerify, formatVerifyResult, VERIFY_SYSTEM_PROMPT } from '../verify/index.js';
-import { loadConfig, getApiKey, getTier, DEFAULT_MODEL } from '../util/config.js';
+import { loadConfig, getApiKey, DEFAULT_MODEL } from '../util/config.js';
 import { findProjectRoot, fileExists } from '../util/fs.js';
 
 export function registerHarness(program: Command): void {
@@ -24,7 +24,6 @@ export function registerHarness(program: Command): void {
     .option('--json', 'Output raw JSON result')
     .option('--dry-run', 'Print system prompt without calling API')
     .action(async (specFile: string | undefined, opts) => {
-      // TODO: Gate to pro tier when command-level gating exists
       const config = loadConfig();
       const apiKey = opts.dryRun ? 'dry-run' : getApiKey(config);
       const client = new ClaudeClient({
@@ -94,7 +93,6 @@ export function registerHarness(program: Command): void {
         await runInterview(HARNESS_AUDIT, client, io, {
           dryRun: opts.dryRun,
           outputFile: 'HARNESS-AUDIT.md',
-          tier: getTier(config),
         });
       } catch (err: any) {
         console.error(chalk.red(`\n✗ ${err.message}`));
@@ -122,7 +120,6 @@ export function registerHarness(program: Command): void {
       try {
         await runInterview(HARNESS_ROUTE, client, io, {
           dryRun: opts.dryRun,
-          tier: getTier(config),
         });
       } catch (err: any) {
         console.error(chalk.red(`\n✗ ${err.message}`));
@@ -139,7 +136,6 @@ export function registerHarness(program: Command): void {
     .option('--model <model>', 'Override Claude model')
     .option('--dry-run', 'Print system prompt without calling API')
     .action(async (opts) => {
-      // TODO: Gate to pro tier when command-level gating exists
       const config = loadConfig();
       const apiKey = opts.dryRun ? 'dry-run' : getApiKey(config);
       const client = new ClaudeClient({
@@ -152,7 +148,6 @@ export function registerHarness(program: Command): void {
         await runInterview(HARNESS_BRIEF, client, io, {
           dryRun: opts.dryRun,
           outputFile: 'HARNESS-BRIEF.md',
-          tier: getTier(config),
         });
       } catch (err: any) {
         console.error(chalk.red(`\n✗ ${err.message}`));
