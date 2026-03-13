@@ -150,14 +150,19 @@ export function registerHarness(program: Command): void {
         // Read spec and extract acceptance criteria
         const specContent = readFileSync(resolvedSpec, 'utf-8');
         const criteriaLines: string[] = [];
-        const criteriaRegex = /^\s*(?:[-*]|\d+[.)]) ?\[?\d*\]?\s*(.+)/gm;
         let inCriteria = false;
         for (const line of specContent.split('\n')) {
-          if (/acceptance\s+criteria/i.test(line)) {
+          // Start: match "## Acceptance Criteria", "2. ACCEPTANCE CRITERIA", etc.
+          if (/(?:^#{1,3}\s+|^\d+[\.\)]\s+).*acceptance\s+criteria/i.test(line)) {
             inCriteria = true;
             continue;
           }
-          if (inCriteria && /^#{1,3}\s/.test(line) && !/acceptance/i.test(line)) {
+          // Stop: next section header (markdown heading, HR, or numbered ALL-CAPS header like "3. CONSTRAINT ARCHITECTURE")
+          if (inCriteria && !line.match(/^\s*$/) && (
+            /^#{1,3}\s/.test(line) ||
+            /^---/.test(line) ||
+            /^\d+[\.\)]\s+[A-Z][A-Z\s&]+$/.test(line)
+          ) && !/acceptance/i.test(line)) {
             inCriteria = false;
           }
           if (inCriteria) {
