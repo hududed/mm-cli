@@ -12,5 +12,8 @@ export {
   EVAL_HARNESS,
   CONSTRAINT_DESIGNER,
   SKILL_BUILD,
+  HARNESS_AUDIT,
+  HARNESS_ROUTE,
+  HARNESS_BRIEF,
   TEMPLATES,
 } from './templates/index.js';
