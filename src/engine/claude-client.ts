@@ -136,7 +136,7 @@ export class ClaudeClient {
         const last = toolResults[toolResults.length - 1];
         const existing = typeof last.content === 'string' ? last.content : '';
         last.content = existing +
-          '\n\n[SYSTEM: You are approaching the tool use limit. Stop exploring and respond to the user now. Summarize what you have found and ask your interview question.]';
+          '\n\n[SYSTEM: You are approaching the tool use limit. Stop exploring and produce your final output NOW. If you are verifying a spec, output the JSON assessment immediately with what you have found so far. If you are in an interview, summarize and ask your question.]';
       }
 
       // Send tool results back to Claude
