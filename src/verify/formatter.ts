@@ -54,15 +54,10 @@ export function formatVerifyResult(result: VerifyResult): string {
     lines.push(chalk.dim(`  ${details.join(', ')}`));
   }
 
-  // Hint about evidence files if there are unverifiable criteria
+  // Note runtime-only criteria
   if (result.summary.unverifiable > 0) {
     lines.push('');
-    lines.push(chalk.yellow(`  ℹ ${result.summary.unverifiable} criteria require runtime verification.`));
-    lines.push(chalk.yellow('    Create an evidence file to verify them:'));
-    // Show relative path (e.g. specs/foo.md) if possible, otherwise just filename
-    const specsMatch = result.specFile.match(/(?:^|\/)(specs\/[^/]+\.md)$/);
-    const attestPath = specsMatch ? specsMatch[1] : result.specFile.replace(/.*\//, '');
-    lines.push(chalk.yellow(`    mm harness attest ${attestPath}`));
+    lines.push(chalk.yellow(`  ℹ ${result.summary.unverifiable} criteria require runtime verification (e.g., live testing, manual QA).`));
   }
 
   return lines.join('\n');
