@@ -26,19 +26,36 @@ export interface SendWithToolsResult {
 export class ClaudeClient {
   private client: Anthropic;
   private model: string;
+  private usingOAuth: boolean;
 
   constructor(options: ClaudeClientOptions) {
-    if (isOAuthToken(options.apiKey)) {
+    this.usingOAuth = isOAuthToken(options.apiKey);
+    if (this.usingOAuth) {
       this.client = new Anthropic({
+        apiKey: null as unknown as string,
         authToken: options.apiKey,
         defaultHeaders: {
-          'anthropic-beta': 'oauth-2025-04-20',
+          'accept': 'application/json',
+          'anthropic-beta': 'claude-code-20250219,oauth-2025-04-20',
+          'user-agent': 'claude-cli/2.1.2 (external, cli)',
+          'x-app': 'cli',
         },
       });
     } else {
       this.client = new Anthropic({ apiKey: options.apiKey });
     }
     this.model = options.model || 'claude-sonnet-4-6';
+  }
+
+  /**
+   * Build system param. OAuth requires Claude Code identity prefix.
+   */
+  private buildSystem(systemPrompt: string): string | Anthropic.TextBlockParam[] {
+    if (!this.usingOAuth) return systemPrompt;
+    return [
+      { type: 'text' as const, text: 'You are Claude Code, Anthropic\'s official CLI for Claude.' },
+      { type: 'text' as const, text: systemPrompt },
+    ];
   }
 
   /**
@@ -52,7 +69,7 @@ export class ClaudeClient {
     const response = await this.createWithRetry({
       model: this.model,
       max_tokens: maxTokens,
-      system: systemPrompt,
+      system: this.buildSystem(systemPrompt),
       messages: messages.map(m => ({
         role: m.role,
         content: m.content,
@@ -89,7 +106,7 @@ export class ClaudeClient {
       const response = await this.createWithRetry({
         model: this.model,
         max_tokens: maxTokens,
-        system: systemPrompt,
+        system: this.buildSystem(systemPrompt),
         tools,
         messages: currentMessages,
       });
