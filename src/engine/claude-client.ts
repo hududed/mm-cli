@@ -159,7 +159,7 @@ export class ClaudeClient {
    * Retry API calls on 500/529 errors with exponential backoff.
    */
   private async createWithRetry(
-    params: Anthropic.MessageCreateParams,
+    params: Anthropic.MessageCreateParamsNonStreaming,
     maxRetries: number = 3
   ): Promise<Anthropic.Message> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {

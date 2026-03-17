@@ -81,6 +81,7 @@ export const CODEBASE_TOOLS: Anthropic.Tool[] = [
             'Directory path relative to project root (default: project root). E.g. "src", "specs", "."',
         },
       },
+      required: [],
     },
   },
   {
