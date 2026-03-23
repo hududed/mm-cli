@@ -124,6 +124,7 @@ Typical length: 800-2,000 words depending on project complexity.
   ],
   artifactTemplate: 'PROJECT SPECIFICATION with 7 sections',
   guardrails: [
+    '- When the user provides multiple points in one message, acknowledge and address ALL of them before asking your next question. Never respond to only the first point and drop the rest — re-read the full message before replying',
     '- Do not write the specification until the interview is complete — resist the urge to produce output before you understand the full picture',
     '- Every acceptance criterion must be verifiable by someone who wasn\'t part of this conversation',
     '- Do not include vague criteria like "high quality" or "well-written" — operationalize these into specific, observable qualities',

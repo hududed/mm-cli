@@ -17,9 +17,10 @@ export class StdinIO {
   }
 
   /**
-   * Prompt the user for input. Supports multi-line paste: lines arriving
-   * in rapid succession (< 50ms apart) are buffered and joined with \n.
-   * A single typed Enter still submits immediately.
+   * Prompt the user for input. Supports multi-line input:
+   * - Pasted text (lines < 50ms apart) is buffered automatically
+   * - Typed multi-line: first Enter starts multi-line mode, second blank Enter submits
+   * - Single-line: if the line has content and no follow-up within 150ms, submits immediately
    */
   async prompt(message?: string): Promise<string> {
     if (this.closed) {
@@ -37,6 +38,8 @@ export class StdinIO {
       const lines: string[] = [];
       let timer: ReturnType<typeof setTimeout> | null = null;
       const PASTE_WAIT_MS = 50;
+      const TYPED_WAIT_MS = 150;
+      let lastLineTime = 0;
 
       const cleanup = () => {
         if (timer) clearTimeout(timer);
@@ -44,13 +47,36 @@ export class StdinIO {
         this.rl.removeListener('close', onClose);
       };
 
+      const submit = () => {
+        cleanup();
+        resolve(lines.join('\n'));
+      };
+
       const onLine = (line: string) => {
+        const now = Date.now();
+        const gap = now - lastLineTime;
+        lastLineTime = now;
+
+        // Blank line after content = submit (double-Enter)
+        if (line.trim() === '' && lines.length > 0 && lines.some(l => l.trim() !== '')) {
+          // If this looks like a paste (rapid blank line), keep buffering
+          if (gap < PASTE_WAIT_MS) {
+            lines.push(line);
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(submit, PASTE_WAIT_MS);
+            return;
+          }
+          // Typed blank line after content = submit
+          submit();
+          return;
+        }
+
         lines.push(line);
         if (timer) clearTimeout(timer);
-        timer = setTimeout(() => {
-          cleanup();
-          resolve(lines.join('\n'));
-        }, PASTE_WAIT_MS);
+
+        // Use shorter wait for paste detection, longer for typed input
+        const waitMs = gap < PASTE_WAIT_MS ? PASTE_WAIT_MS : TYPED_WAIT_MS;
+        timer = setTimeout(submit, waitMs);
       };
 
       const onClose = () => {
