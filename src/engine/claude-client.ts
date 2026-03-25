@@ -167,7 +167,26 @@ export class ClaudeClient {
       currentMessages.push({ role: 'user', content: toolResults });
     }
 
-    throw new Error('Tool use loop exceeded maximum iterations');
+    // Force a final response with no tools available
+    currentMessages.push({
+      role: 'user',
+      content: '[SYSTEM: Tool use limit reached. You MUST respond now with text only — no more tool calls. Summarize what you found and continue the conversation.]',
+    });
+
+    const finalResponse = await this.createWithRetry({
+      model: this.model,
+      max_tokens: maxTokens,
+      system: this.buildSystem(systemPrompt),
+      tools: [], // no tools — forces text response
+      messages: currentMessages,
+    });
+
+    const finalText = finalResponse.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map(b => b.text)
+      .join('\n');
+
+    return { text: finalText, apiMessages: currentMessages, toolCalls };
   }
 
   /**
