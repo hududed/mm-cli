@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { Command } from 'commander';
 import chalk from 'chalk';
@@ -10,7 +10,7 @@ import { exportSkills, getOutputFilename, type ExportFormat } from '../skill/exp
 import { ClaudeClient } from '../engine/claude-client.js';
 import { StdinIO } from '../engine/stdin-io.js';
 import { runInterview } from '../engine/interview.js';
-import { SKILL_BUILD } from '../engine/interview-templates.js';
+import { SKILL_BUILD, SKILL_BACKLOG, SKILL_AUDIT } from '../engine/interview-templates.js';
 import { loadConfig, getApiKey, DEFAULT_MODEL } from '../util/config.js';
 
 function requireProjectRoot(): string {
@@ -155,6 +155,119 @@ export function registerSkill(program: Command): void {
       } catch (err: any) {
         console.error(chalk.red(`✗ ${err.message}`));
         process.exit(1);
+      }
+    });
+
+  skill
+    .command('backlog')
+    .description('Interview-driven skill backlog — surfaces recurring AI workflows and writes a prioritized BACKLOG.md')
+    .option('--model <model>', 'Override Claude model')
+    .option('--dry-run', 'Print messages without calling API')
+    .option('--fresh', 'Start from scratch even if BACKLOG.md already exists')
+    .action(async (opts) => {
+      const root = requireProjectRoot();
+      const outputFile = join(root, '.claude', 'skills', 'BACKLOG.md');
+
+      const config = loadConfig();
+      const apiKey = opts.dryRun ? 'dry-run' : getApiKey(config);
+      const client = new ClaudeClient({
+        apiKey,
+        model: opts.model || config.model || DEFAULT_MODEL,
+      });
+
+      const io = new StdinIO();
+
+      // Inject existing skills so Claude can produce an "Already Built" section
+      // and exclude covered workflows from the backlog table
+      const existingSkills = listSkills(root);
+      const existingSkillsContext = existingSkills.length > 0
+        ? `The following skills are already built for this project:\n${existingSkills.map(s => `- ${s.name}`).join('\n')}\n\nExclude any workflows already covered by these skills from the backlog table. List them in an "Already Built" section above the table instead.`
+        : 'No skills have been built for this project yet.';
+
+      try {
+        await runInterview(SKILL_BACKLOG, client, io, {
+          dryRun: opts.dryRun,
+          outputFile,
+          fresh: opts.fresh,
+          initialInput: existingSkillsContext,
+        });
+      } catch (err: any) {
+        console.error(chalk.red(`\n✗ ${err.message}`));
+        process.exit(1);
+      } finally {
+        io.close();
+      }
+    });
+
+  skill
+    .command('audit [name]')
+    .description('Audit a skill against four agent-readiness criteria and produce a scored report')
+    .option('--model <model>', 'Override Claude model')
+    .option('--dry-run', 'Print messages without calling API')
+    .option('--file <path>', 'Path to SKILL.md file (overrides name resolution)')
+    .action(async (name: string | undefined, opts) => {
+      const root = requireProjectRoot();
+
+      let skillPath: string;
+      if (opts.file) {
+        skillPath = opts.file;
+      } else if (name) {
+        skillPath = join(root, '.claude', 'skills', name, 'SKILL.md');
+      } else {
+        console.error(chalk.red('Provide a skill name or --file <path>'));
+        process.exit(1);
+      }
+
+      if (!existsSync(skillPath)) {
+        const label = name || opts.file;
+        console.error(chalk.red(`Skill "${label}" not found.`));
+        const available = listSkills(root).map(s => s.name);
+        if (available.length > 0) {
+          console.log(chalk.dim('Available skills: ' + available.join(', ')));
+        }
+        process.exit(1);
+      }
+
+      const skillContent = readFileSync(skillPath, 'utf-8');
+      const skillDir = join(skillPath, '..');
+      const outputFile = join(skillDir, 'SKILL-audited.md');
+
+      if (opts.dryRun) {
+        console.log(chalk.dim(`Resolved skill file: ${skillPath}`));
+      }
+
+      const config = loadConfig();
+      const apiKey = opts.dryRun ? 'dry-run' : getApiKey(config);
+      const client = new ClaudeClient({
+        apiKey,
+        model: opts.model || config.model || DEFAULT_MODEL,
+      });
+
+      const io = new StdinIO();
+
+      try {
+        const result = await runInterview(SKILL_AUDIT, client, io, {
+          dryRun: opts.dryRun,
+          initialInput: skillContent,
+          // No outputFile — we write the file ourselves based on result
+        });
+
+        const passed4of4 = result.artifact?.includes('4/4 criteria passing');
+        if (passed4of4) {
+          console.log(chalk.green('\n✓ 4/4 criteria passing — skill is production-ready. No action needed.'));
+        } else if (result.artifact) {
+          writeFileSync(outputFile, result.artifact, 'utf-8');
+          console.log(chalk.yellow('\n⚠ Gaps found. Hardened skill saved to:'));
+          console.log(chalk.dim(`  ${outputFile}`));
+          console.log(chalk.dim(`\nReview the changes, then apply with:`));
+          console.log(chalk.cyan(`  cp ${outputFile} ${skillPath}`));
+          console.log(chalk.dim(`Then rerun: mm skill audit ${name || ''} to confirm 4/4.`));
+        }
+      } catch (err: any) {
+        console.error(chalk.red(`\n✗ ${err.message}`));
+        process.exit(1);
+      } finally {
+        io.close();
       }
     });
 }

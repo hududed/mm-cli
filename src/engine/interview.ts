@@ -85,6 +85,10 @@ export async function runInterview(
     apiMessages = [];
   }
 
+  let saved = false;
+  let savedContent = '';
+  let interrupted = false;
+
   // If there's initial input (e.g., skill name for skill new, piped stdin for rewrite),
   // send it to Claude immediately so it can explore the codebase and respond before
   // prompting the user. This lets Claude's first questions be grounded in actual code.
@@ -118,6 +122,18 @@ export async function runInterview(
 
     io.printAssistant(greeting);
     messages.push({ role: 'assistant', content: greeting });
+
+    // For one-shot commands (e.g. audit), the response to initialInput IS the final artifact
+    if (isLikelyComplete(greeting, config)) {
+      if (options.outputFile) {
+        writeArtifact(options.outputFile, greeting);
+        saved = true;
+        savedContent = greeting;
+      }
+      if (config.noFollowUp) {
+        return { artifact: greeting, transcript: messages, config };
+      }
+    }
   } else {
     // Check if output file already exists — enter edit mode if so
     let startMsg = 'Begin the interview.';
@@ -151,9 +167,6 @@ export async function runInterview(
   }
 
   let turn = 0;
-  let saved = false;
-  let savedContent = '';
-  let interrupted = false;
   const isEditMode = !!loadExistingArtifact(options);
 
   // Auto-continue discovery phases — each gets its own tool budget.
@@ -250,7 +263,8 @@ export async function runInterview(
         savedContent = response;
       }
 
-      // 2. Explicit follow-up — say exactly what continuing does, default N
+      // 2. Explicit follow-up — skip for one-shot commands (e.g. audit)
+      if (config.noFollowUp) break;
       const continueChoice = await askFollowUp(io);
       if (!continueChoice) break;
     }
@@ -385,6 +399,8 @@ function isLikelyComplete(response: string, config: InterviewConfig): boolean {
     'harness-audit': ['LOCK-IN SCORECARD', 'THREE ACTIONS THIS WEEK', 'TASK ROUTING MAP'],
     'harness-route': ['Recommended Harness', 'Verification Plan', 'Setup Checklist'],
     'harness-brief': ['ARCHITECTURE DECISION BRIEF', 'ONE THING TO DECIDE', 'DECISION TIMELINE'],
+    'skill-backlog': ['Build Now', 'Build Next', 'BACKLOG'],
+    'skill-audit': ['hardened file written to', 'no changes needed'],
   };
 
   const markers = [

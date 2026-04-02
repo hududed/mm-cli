@@ -34,8 +34,10 @@ All interview templates implement the 4 disciplines framework as `InterviewConfi
 npx tsx src/index.ts preflight        # Test preflight command
 npx tsx src/index.ts skill list       # Test skill list
 npx vitest run                        # Run tests
-npm link                              # Install globally as 'mm'
+npm run build && npm link             # Build dist/ and install globally as 'mm'
 ```
+
+**After any code change, run `npm run build` before testing the global `mm` binary.** The bin entry points to `dist/`, not `src/`. If you skip the build, the old binary runs and you will confidently tell the user a feature works when it doesn't.
 
 ## Dependencies (strict budget)
 
@@ -64,3 +66,19 @@ Priority: `CLAUDE_CODE_OAUTH_TOKEN` > `ANTHROPIC_SETUP_TOKEN` > `ANTHROPIC_API_K
 - Conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`
 - No AI attribution in commits
 - Keep messages clean and descriptive
+
+## Versioning Rules
+
+**`package.json`** — bump on every push that ships user-facing changes:
+- `patch` (0.x.Y): bug fixes, copy changes, test additions
+- `minor` (0.X.0): new commands, new templates, new flags, new skills
+- `major` (X.0.0): breaking CLI changes (removed commands, changed output format)
+
+**`SKILL.md` frontmatter `version:`** — bump whenever the file is edited:
+- `patch`: content corrections, guardrail tweaks, wording changes
+- `minor`: new sections added, output format changed, new edge cases
+- Do not leave `version:` unchanged after editing a skill file
+
+**Spec files (`specs/*.md`)** — bump `version:` in frontmatter when acceptance criteria or constraints change. No bump needed for status/date updates only.
+
+**On every commit that modifies `.claude/skills/*/SKILL.md` or `specs/*.md`:** verify the frontmatter `version:` was incremented. If it wasn't, bump patch before committing.

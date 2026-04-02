@@ -16,6 +16,8 @@ export interface InterviewConfig {
   enableTools?: boolean;
   /** Max tool loop iterations per turn. Default: 15 */
   maxToolLoops?: number;
+  /** Skip the follow-up prompt after completion. Use for one-shot commands like audit. */
+  noFollowUp?: boolean;
   /**
    * Auto-continue discovery phases. Each entry is a prompt sent automatically
    * after the previous tool turn completes, giving Claude a fresh 15-tool budget

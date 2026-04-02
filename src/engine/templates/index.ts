@@ -16,6 +16,8 @@ export { SPEC_QA } from './spec-qa.js';
 export { SPEC_DECOMPOSE } from './spec-decompose.js';
 export { DIAGNOSE_HEALTH } from './diagnose-health.js';
 export { HARNESS_SECURITY } from './harness-security.js';
+export { SKILL_BACKLOG } from './skill-backlog.js';
+export { SKILL_AUDIT } from './skill-audit.js';
 
 import { DIAGNOSE_QUICK } from './diagnose-quick.js';
 import { DIAGNOSE_DEEP } from './diagnose-deep.js';
@@ -33,6 +35,8 @@ import { SPEC_QA } from './spec-qa.js';
 import { SPEC_DECOMPOSE } from './spec-decompose.js';
 import { DIAGNOSE_HEALTH } from './diagnose-health.js';
 import { HARNESS_SECURITY } from './harness-security.js';
+import { SKILL_BACKLOG } from './skill-backlog.js';
+import { SKILL_AUDIT } from './skill-audit.js';
 
 export const TEMPLATES: Record<string, InterviewConfig> = {
   'diagnose-quick': DIAGNOSE_QUICK,
@@ -51,4 +55,6 @@ export const TEMPLATES: Record<string, InterviewConfig> = {
   'harness-security': HARNESS_SECURITY,
   'spec-decompose': SPEC_DECOMPOSE,
   'diagnose-health': DIAGNOSE_HEALTH,
+  'skill-backlog': SKILL_BACKLOG,
+  'skill-audit': SKILL_AUDIT,
 };

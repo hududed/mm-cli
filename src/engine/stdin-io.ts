@@ -37,8 +37,8 @@ export class StdinIO {
     return new Promise<string>((resolve, reject) => {
       const lines: string[] = [];
       let timer: ReturnType<typeof setTimeout> | null = null;
-      const PASTE_WAIT_MS = 50;
-      const TYPED_WAIT_MS = 150;
+      const PASTE_WAIT_MS = 150;
+      const TYPED_WAIT_MS = 400;
       let lastLineTime = 0;
 
       const cleanup = () => {

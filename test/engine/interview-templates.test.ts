@@ -9,6 +9,8 @@ import {
   EVAL_HARNESS,
   CONSTRAINT_DESIGNER,
   SKILL_BUILD,
+  SKILL_BACKLOG,
+  SKILL_AUDIT,
   HARNESS_AUDIT,
   HARNESS_ROUTE,
   HARNESS_BRIEF,
@@ -71,7 +73,7 @@ describe('Interview Templates', () => {
     expect(SPEC_NEW.systemPrompt).toContain('PROJECT INTAKE');
     expect(SPEC_NEW.systemPrompt).toContain('DEEP INTERVIEW');
     expect(SPEC_NEW.systemPrompt).toContain('SPECIFICATION DOCUMENT');
-    expect(SPEC_NEW.systemPrompt).toContain('7. DEFINITION OF DONE');
+    expect(SPEC_NEW.systemPrompt).toContain('8. DEFINITION OF DONE');
   });
 
   it('SPEC_QA has 5 discovery-first phases and coverage math constraint', () => {
@@ -119,8 +121,28 @@ describe('Interview Templates', () => {
     expect(SKILL_BUILD.phases).toHaveLength(3);
   });
 
-  it('TEMPLATES registry has all 13 templates', () => {
-    expect(Object.keys(TEMPLATES)).toHaveLength(13);
+  it('SKILL_BACKLOG has correct structure and backlog-specific markers', () => {
+    validateTemplate(SKILL_BACKLOG);
+    expect(SKILL_BACKLOG.id).toBe('skill-backlog');
+    expect(SKILL_BACKLOG.systemPrompt).toContain('Build Now');
+    expect(SKILL_BACKLOG.systemPrompt).toContain('Build Next');
+    expect(SKILL_BACKLOG.systemPrompt).toContain('Methodology-Dependence');
+    expect(SKILL_BACKLOG.enableTools).toBeFalsy();
+  });
+
+  it('SKILL_AUDIT has correct structure and all four criterion definitions', () => {
+    validateTemplate(SKILL_AUDIT);
+    expect(SKILL_AUDIT.id).toBe('skill-audit');
+    expect(SKILL_AUDIT.systemPrompt).toContain('Routing Description');
+    expect(SKILL_AUDIT.systemPrompt).toContain('Output Format');
+    expect(SKILL_AUDIT.systemPrompt).toContain('Edge Case Handling');
+    expect(SKILL_AUDIT.systemPrompt).toContain('Composability');
+    expect(SKILL_AUDIT.systemPrompt).toContain('criteria passing');
+    expect(SKILL_AUDIT.enableTools).toBeFalsy();
+  });
+
+  it('TEMPLATES registry has all 18 templates', () => {
+    expect(Object.keys(TEMPLATES)).toHaveLength(18);
     expect(TEMPLATES['diagnose-quick']).toBe(DIAGNOSE_QUICK);
     expect(TEMPLATES['diagnose-deep']).toBe(DIAGNOSE_DEEP);
     expect(TEMPLATES['rewrite']).toBe(REWRITE);

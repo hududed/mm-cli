@@ -87,4 +87,17 @@ describe('mm skill', () => {
     const output = execSync(`${CLI} skill validate`, { cwd: ROOT, encoding: 'utf-8' });
     expect(output).toContain('test-skill');
   });
+
+  it('skill backlog --dry-run prints system prompt without API call', () => {
+    const output = execSync(`${CLI} skill backlog --dry-run`, { cwd: ROOT, encoding: 'utf-8' });
+    expect(output).toContain('DRY RUN');
+    expect(output).toContain('Backlog');
+  });
+
+  it('skill audit --dry-run with valid skill prints system prompt', () => {
+    createTestSkill();
+    const output = execSync(`${CLI} skill audit test-skill --dry-run`, { cwd: ROOT, encoding: 'utf-8' });
+    expect(output).toContain('DRY RUN');
+    expect(output).toContain('Routing Description');
+  });
 });
