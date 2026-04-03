@@ -10,7 +10,7 @@ import { exportSkills, getOutputFilename, type ExportFormat } from '../skill/exp
 import { ClaudeClient } from '../engine/claude-client.js';
 import { StdinIO } from '../engine/stdin-io.js';
 import { runInterview } from '../engine/interview.js';
-import { SKILL_BUILD, SKILL_BACKLOG, SKILL_AUDIT } from '../engine/interview-templates.js';
+import { SKILL_BUILD, SKILL_BUILD_EXAMPLES, SKILL_BACKLOG, SKILL_AUDIT } from '../engine/interview-templates.js';
 import { loadConfig, getApiKey, DEFAULT_MODEL } from '../util/config.js';
 
 function requireProjectRoot(): string {
@@ -33,6 +33,7 @@ export function registerSkill(program: Command): void {
     .option('--model <model>', 'Override Claude model')
     .option('--dry-run', 'Print messages without calling API')
     .option('--fresh', 'Start from scratch even if skill already exists')
+    .option('--from-examples', 'Extract methodology from 3–5 examples of your best work instead of codebase exploration')
     .action(async (name: string, opts) => {
       const root = requireProjectRoot();
       const skillDir = join(getSkillsDir(root), name);
@@ -70,12 +71,17 @@ export function registerSkill(program: Command): void {
 
       const io = new StdinIO();
 
+      const template = opts.fromExamples ? SKILL_BUILD_EXAMPLES : SKILL_BUILD;
+      const initialInput = opts.fromExamples
+        ? `The skill name is "${name}". Ask me for examples — do not explore the codebase.`
+        : `The skill name is "${name}". Explore the codebase and build a SKILL.md for this domain.`;
+
       try {
-        const result = await runInterview(SKILL_BUILD, client, io, {
+        const result = await runInterview(template, client, io, {
           dryRun: opts.dryRun,
           outputFile: skillPath,
           fresh: opts.fresh,
-          initialInput: `The skill name is "${name}". Explore the codebase and build a SKILL.md for this domain.`,
+          initialInput,
         });
 
         if (result.artifact) {
