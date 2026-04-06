@@ -18,9 +18,11 @@ export class StdinIO {
 
   /**
    * Prompt the user for input. Supports multi-line input:
-   * - Pasted text (lines < 50ms apart) is buffered automatically
-   * - Typed multi-line: first Enter starts multi-line mode, second blank Enter submits
-   * - Single-line: if the line has content and no follow-up within 150ms, submits immediately
+   * - Pasted text (lines < 150ms apart) is buffered; submits 150ms after last line
+   * - Typed input: submits 400ms after last Enter
+   * - Blank lines are treated as content — never trigger early submit.
+   *   This is intentional: timing-based blank-line detection is unreliable across
+   *   terminals and system load, and has caused repeated paste truncation bugs.
    */
   async prompt(message?: string): Promise<string> {
     if (this.closed) {
@@ -37,8 +39,8 @@ export class StdinIO {
     return new Promise<string>((resolve, reject) => {
       const lines: string[] = [];
       let timer: ReturnType<typeof setTimeout> | null = null;
-      const PASTE_WAIT_MS = 150;
-      const TYPED_WAIT_MS = 400;
+      const PASTE_WAIT_MS = 1000;
+      const TYPED_WAIT_MS = 1000;
       let lastLineTime = 0;
 
       const cleanup = () => {
@@ -57,24 +59,12 @@ export class StdinIO {
         const gap = now - lastLineTime;
         lastLineTime = now;
 
-        // Blank line after content = submit (double-Enter)
-        if (line.trim() === '' && lines.length > 0 && lines.some(l => l.trim() !== '')) {
-          // If this looks like a paste (rapid blank line), keep buffering
-          if (gap < PASTE_WAIT_MS) {
-            lines.push(line);
-            if (timer) clearTimeout(timer);
-            timer = setTimeout(submit, PASTE_WAIT_MS);
-            return;
-          }
-          // Typed blank line after content = submit
-          submit();
-          return;
-        }
-
         lines.push(line);
         if (timer) clearTimeout(timer);
 
-        // Use shorter wait for paste detection, longer for typed input
+        // Paste: lines arrive < 150ms apart — wait 150ms after the last one.
+        // Typed: lines arrive > 150ms apart — wait 400ms after the last one.
+        // Either way, the timer — not blank lines — decides when to submit.
         const waitMs = gap < PASTE_WAIT_MS ? PASTE_WAIT_MS : TYPED_WAIT_MS;
         timer = setTimeout(submit, waitMs);
       };
