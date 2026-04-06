@@ -64,7 +64,7 @@ export class ClaudeClient {
   async send(
     systemPrompt: string,
     messages: Message[],
-    maxTokens: number = 8192
+    maxTokens: number = 16000
   ): Promise<string> {
     const response = await this.createWithRetry({
       model: this.model,
@@ -95,7 +95,7 @@ export class ClaudeClient {
     apiMessages: Anthropic.MessageParam[],
     tools: Anthropic.Tool[],
     onToolUse?: (name: string, input: Record<string, unknown>) => void,
-    maxTokens: number = 8192,
+    maxTokens: number = 16000,
     maxToolLoops: number = 15
   ): Promise<SendWithToolsResult> {
     const toolCalls: ToolCall[] = [];
