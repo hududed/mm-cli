@@ -92,8 +92,6 @@ The right engineering response to an incident like this isn't to patch it quickl
 
 That spec becomes the contract. The fix gets built against the contract. Then it gets verified against the contract. That sequence — spec first, verify after — is the difference between patching a symptom and actually solving the problem.
 
-> [FIGURE 1: See drafts/figures/lid-restart-comparison.md — two-column diagram, before/after restart. ASCII + designer brief included.]
-
 ---
 
 ## [ISLAMIC-FRAMEWORK]
