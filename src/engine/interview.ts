@@ -371,9 +371,11 @@ A specification that doesn't reference real files from the codebase is a bad spe
  * or explicit completion signals.
  */
 function isLikelyComplete(response: string, config: InterviewConfig): boolean {
-  // Global markers that signal completion across any template
+  // Global markers that signal completion across any template.
+  // IMPORTANT: avoid short strings that appear in code snippets (e.g. '===' matches
+  // TypeScript strict equality operators mid-interview and causes false positives).
+  // All markers here must be long enough to be unambiguous outside of artifact context.
   const globalMarkers = [
-    '===',
     'HOW TO USE',
     'HOW TO DEPLOY',
     'TO USE THIS',
@@ -387,12 +389,14 @@ function isLikelyComplete(response: string, config: InterviewConfig): boolean {
     'highest-leverage thing you can do this week',
   ];
 
-  // Template-specific markers based on the expected artifact structure
+  // Template-specific markers based on the expected artifact structure.
+  // Use the full section header string, not a substring — prevents false positives
+  // from interview questions that happen to contain partial matches.
   const templateMarkers: Record<string, string[]> = {
     'skill-build': ['## Self-Improvement', '## Guardrails'],
     'context-build': ['KNOWN AI PATTERNS', 'INSTITUTIONAL CONTEXT'],
-    'spec-new': ['DEFINITION OF DONE', '7. DEFINITION'],
-    'spec-qa': ['DEFINITION OF DONE', '7. DEFINITION', 'SELF-VALIDATION'],
+    'spec-new': ['=== PROJECT SPECIFICATION ===', '8. DEFINITION OF DONE', 'DEFINITION OF DONE'],
+    'spec-qa': ['=== PROJECT SPECIFICATION ===', '8. DEFINITION OF DONE', 'DEFINITION OF DONE', 'SELF-VALIDATION'],
     'intent-init': ['DECISION AUTHORITY MAP', 'RIGOR TEST'],
     'eval-harness': ['RESULT LOG', 'TEST CASE'],
     'constraint-designer': ['ESCALATE', 'MUST NOT DO'],
